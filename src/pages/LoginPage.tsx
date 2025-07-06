@@ -1,19 +1,41 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { GraduationCap, Globe, Shield, Users } from 'lucide-react';
+import { GraduationCap, Globe, Shield, Users, Loader2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { login, isLoading, isAuthenticated } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'educator' | 'learner' | null>(null);
+  const [authMethod, setAuthMethod] = useState<'signin' | 'signup' | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'learner' as 'educator' | 'learner'
+  });
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  const handleLogin = async (role: 'educator' | 'learner') => {
+  const handleInternetIdentityLogin = async (role: 'educator' | 'learner') => {
     setSelectedRole(role);
     await login(role);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSelectedRole(formData.role);
+    await login(formData.role);
+  };
+
+  const resetForm = () => {
+    setAuthMethod(null);
+    setSelectedRole(null);
+    setFormData({
+      name: '',
+      email: '',
+      role: 'learner'
+    });
   };
 
   return (
@@ -67,7 +89,7 @@ const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Right side - Login */}
+      {/* Right side - Authentication */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-2xl p-8">
@@ -80,13 +102,20 @@ const LoginPage: React.FC = () => {
                   ICP Scholar
                 </span>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-              <p className="text-gray-600">Choose your role to continue</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {authMethod === 'signup' ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              <p className="text-gray-600">
+                {authMethod === 'signup' 
+                  ? 'Join the decentralized education revolution' 
+                  : 'Choose your authentication method'
+                }
+              </p>
             </div>
 
             {isLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-purple-600" />
                 <p className="text-gray-600">
                   {selectedRole === 'educator' ? 'Connecting as Educator...' : 'Connecting as Learner...'}
                 </p>
@@ -94,10 +123,41 @@ const LoginPage: React.FC = () => {
                   Authenticating with Internet Identity
                 </p>
               </div>
-            ) : (
+            ) : !authMethod ? (
+              // Initial choice between Sign In and Sign Up
               <div className="space-y-4">
                 <button
-                  onClick={() => handleLogin('educator')}
+                  onClick={() => setAuthMethod('signin')}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                >
+                  Sign In
+                  <p className="text-sm opacity-90 mt-1">I already have an account</p>
+                </button>
+
+                <button
+                  onClick={() => setAuthMethod('signup')}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-emerald-700 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                >
+                  Sign Up
+                  <p className="text-sm opacity-90 mt-1">Create a new account</p>
+                </button>
+
+                <div className="text-center mt-6">
+                  <p className="text-sm text-gray-500">
+                    Powered by Internet Computer Protocol
+                  </p>
+                </div>
+              </div>
+            ) : authMethod === 'signin' ? (
+              // Sign In Options
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Choose Your Role</h3>
+                  <p className="text-sm text-gray-600">Select how you want to access the platform</p>
+                </div>
+
+                <button
+                  onClick={() => handleInternetIdentityLogin('educator')}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
                 >
                   <div className="flex items-center justify-center space-x-2">
@@ -108,7 +168,7 @@ const LoginPage: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => handleLogin('learner')}
+                  onClick={() => handleInternetIdentityLogin('learner')}
                   className="w-full bg-gradient-to-r from-emerald-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-emerald-700 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
                 >
                   <div className="flex items-center justify-center space-x-2">
@@ -117,14 +177,103 @@ const LoginPage: React.FC = () => {
                   </div>
                   <p className="text-sm opacity-90 mt-1">Explore and enroll in courses</p>
                 </button>
-              </div>
-            )}
 
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500">
-                Powered by Internet Computer Protocol
-              </p>
-            </div>
+                <button
+                  onClick={resetForm}
+                  className="w-full text-gray-600 hover:text-gray-800 py-2 text-sm"
+                >
+                  ← Back to options
+                </button>
+              </div>
+            ) : (
+              // Sign Up Form
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    I want to join as
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="role"
+                        value="learner"
+                        checked={formData.role === 'learner'}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as 'learner' })}
+                        className="mr-2"
+                      />
+                      <div>
+                        <div className="font-medium">Learner</div>
+                        <div className="text-xs text-gray-500">Take courses</div>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="role"
+                        value="educator"
+                        checked={formData.role === 'educator'}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value as 'educator' })}
+                        className="mr-2"
+                      />
+                      <div>
+                        <div className="font-medium">Educator</div>
+                        <div className="text-xs text-gray-500">Create courses</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                >
+                  Create Account with Internet Identity
+                </button>
+
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="w-full text-gray-600 hover:text-gray-800 py-2 text-sm"
+                >
+                  ← Back to options
+                </button>
+
+                <div className="text-center mt-4">
+                  <p className="text-xs text-gray-500">
+                    By creating an account, you agree to our Terms of Service and Privacy Policy
+                  </p>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>

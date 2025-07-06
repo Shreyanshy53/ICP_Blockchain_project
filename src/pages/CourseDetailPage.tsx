@@ -11,17 +11,21 @@ import {
   BookOpen,
   Award,
   CheckCircle,
-  Circle
+  Circle,
+  Download
 } from 'lucide-react';
 
 const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const { courses, enrollInCourse, enrolledCourses, completeCourse } = useData();
+  const { courses, enrollInCourse, enrolledCourses, markLessonAsRead, generateCertificate, lessonProgress } = useData();
   const { user } = useAuth();
   const [activeLesson, setActiveLesson] = useState<number>(0);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [generatedCertificate, setGeneratedCertificate] = useState<any>(null);
 
   const course = courses.find(c => c.id === courseId);
   const isEnrolled = enrolledCourses.some(c => c.id === courseId);
+  const courseProgress = lessonProgress[courseId || ''] || {};
 
   if (!course) {
     return (
@@ -45,11 +49,23 @@ const CourseDetailPage: React.FC = () => {
     }
   };
 
-  const handleCompleteCourse = () => {
+  const handleMarkAsRead = (lessonId: string) => {
     if (courseId) {
-      completeCourse(courseId);
+      markLessonAsRead(courseId, lessonId);
     }
   };
+
+  const handleGenerateCertificate = () => {
+    if (courseId) {
+      const certificate = generateCertificate(courseId);
+      setGeneratedCertificate(certificate);
+      setShowCertificateModal(true);
+    }
+  };
+
+  const completedLessons = course.lessons.filter(lesson => courseProgress[lesson.id]).length;
+  const progressPercentage = (completedLessons / course.lessons.length) * 100;
+  const allLessonsCompleted = completedLessons === course.lessons.length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -125,7 +141,18 @@ const CourseDetailPage: React.FC = () => {
           {/* Course Content */}
           {isEnrolled && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Course Content</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Course Content</h2>
+                {allLessonsCompleted && (
+                  <button
+                    onClick={handleGenerateCertificate}
+                    className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center space-x-2"
+                  >
+                    <Award className="h-4 w-4" />
+                    <span>Generate Certificate</span>
+                  </button>
+                )}
+              </div>
               
               {course.lessons.map((lesson, index) => (
                 <div key={lesson.id} className="mb-4">
@@ -140,9 +167,9 @@ const CourseDetailPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className={`p-2 rounded-full ${
-                          lesson.completed ? 'bg-green-100' : 'bg-gray-100'
+                          courseProgress[lesson.id] ? 'bg-green-100' : 'bg-gray-100'
                         }`}>
-                          {lesson.completed ? (
+                          {courseProgress[lesson.id] ? (
                             <CheckCircle className="h-4 w-4 text-green-600" />
                           ) : (
                             <Play className="h-4 w-4 text-gray-600" />
@@ -153,29 +180,36 @@ const CourseDetailPage: React.FC = () => {
                           <p className="text-sm text-gray-600">{lesson.duration}</p>
                         </div>
                       </div>
-                      {lesson.completed && (
+                      {courseProgress[lesson.id] && (
                         <CheckCircle className="h-5 w-5 text-green-600" />
                       )}
                     </div>
                   </button>
                   
                   {activeLesson === index && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                      <p className="text-gray-700">{lesson.content}</p>
+                    <div className="mt-4 p-6 bg-gray-50 rounded-lg">
+                      <div className="prose max-w-none">
+                        <div dangerouslySetInnerHTML={{ __html: lesson.content.replace(/\n/g, '<br>') }} />
+                      </div>
+                      <div className="mt-6 pt-4 border-t border-gray-200">
+                        {!courseProgress[lesson.id] ? (
+                          <button
+                            onClick={() => handleMarkAsRead(lesson.id)}
+                            className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                          >
+                            Mark as Read
+                          </button>
+                        ) : (
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <CheckCircle className="h-5 w-5" />
+                            <span className="font-medium">Completed</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               ))}
-              
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <button
-                  onClick={handleCompleteCourse}
-                  className="w-full bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center space-x-2"
-                >
-                  <Award className="h-5 w-5" />
-                  <span>Complete Course & Get Certificate</span>
-                </button>
-              </div>
             </div>
           )}
         </div>
@@ -216,10 +250,16 @@ const CourseDetailPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Progress</span>
-                    <span className="font-medium">0/{course.lessons.length} lessons</span>
+                    <span className="font-medium">{completedLessons}/{course.lessons.length} lessons</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-purple-600 h-2 rounded-full" style={{ width: '0%' }}></div>
+                    <div 
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${progressPercentage}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-center text-sm text-gray-600">
+                    {Math.round(progressPercentage)}% Complete
                   </div>
                 </div>
               </div>
@@ -230,15 +270,15 @@ const CourseDetailPage: React.FC = () => {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-start space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Master the fundamentals of blockchain technology</span>
+                  <span>Master the fundamentals of the subject</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Understand cryptographic principles</span>
+                  <span>Understand core principles and concepts</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Learn about consensus mechanisms</span>
+                  <span>Apply knowledge in practical scenarios</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -267,6 +307,87 @@ const CourseDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Certificate Modal */}
+      {showCertificateModal && generatedCertificate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              {/* Certificate Design */}
+              <div className="border-8 border-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-8 bg-gradient-to-br from-purple-50 to-blue-50">
+                <div className="text-center">
+                  <div className="mb-6">
+                    <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                      <Award className="h-10 w-10 text-white" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Certificate of Completion</h1>
+                    <div className="w-24 h-1 bg-gradient-to-r from-purple-600 to-blue-600 mx-auto"></div>
+                  </div>
+                  
+                  <div className="mb-8">
+                    <p className="text-lg text-gray-700 mb-4">This is to certify that</p>
+                    <h2 className="text-4xl font-bold text-gray-900 mb-4">{generatedCertificate.studentName}</h2>
+                    <p className="text-lg text-gray-700 mb-2">has successfully completed the course</p>
+                    <h3 className="text-2xl font-semibold text-purple-600 mb-6">{generatedCertificate.courseTitle}</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-8 mb-8">
+                    <div>
+                      <p className="text-sm text-gray-600">Completion Date</p>
+                      <p className="font-semibold">{new Date(generatedCertificate.completionDate).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Instructor</p>
+                      <p className="font-semibold">{generatedCertificate.educatorName}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <div className="bg-white p-4 rounded-lg border">
+                      <p className="text-xs text-gray-500 mb-1">Certificate ID</p>
+                      <p className="font-mono text-sm">{generatedCertificate.id}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <div className="bg-white p-4 rounded-lg border">
+                      <p className="text-xs text-gray-500 mb-1">Verification Hash</p>
+                      <p className="font-mono text-xs break-all">{generatedCertificate.verificationHash}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-center space-x-4 text-sm text-gray-600">
+                    <div className="flex items-center space-x-1">
+                      <Shield className="h-4 w-4" />
+                      <span>Blockchain Verified</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <GraduationCap className="h-4 w-4" />
+                      <span>ICP Scholar</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-center space-x-4 mt-6">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download Certificate</span>
+                </button>
+                <button
+                  onClick={() => setShowCertificateModal(false)}
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
