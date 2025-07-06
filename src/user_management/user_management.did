@@ -1,0 +1,48 @@
+type UserRole = variant {
+  Educator;
+  Learner;
+};
+
+type User = record {
+  id: nat64;
+  principal: principal;
+  role: UserRole;
+  name: text;
+  email: text;
+  avatar: opt text;
+  created_at: nat64;
+  updated_at: nat64;
+};
+
+type CreateUserPayload = record {
+  role: UserRole;
+  name: text;
+  email: text;
+  avatar: opt text;
+};
+
+type UpdateUserPayload = record {
+  name: opt text;
+  email: opt text;
+  avatar: opt text;
+};
+
+type Result = variant {
+  Ok: User;
+  Err: text;
+};
+
+type Result_1 = variant {
+  Ok: text;
+  Err: text;
+};
+
+service : {
+  create_user: (CreateUserPayload) -> (Result);
+  delete_user: () -> (Result_1);
+  get_all_users: () -> (vec User) query;
+  get_current_user: () -> (opt User) query;
+  get_user: (principal) -> (opt User) query;
+  get_users_by_role: (UserRole) -> (vec User) query;
+  update_user: (UpdateUserPayload) -> (Result);
+}

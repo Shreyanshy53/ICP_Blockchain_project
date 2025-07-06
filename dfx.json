@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "canisters": {
+    "user_management": {
+      "type": "rust",
+      "package": "user_management"
+    },
+    "course_management": {
+      "type": "rust",
+      "package": "course_management"
+    },
+    "certificate_issuer": {
+      "type": "rust",
+      "package": "certificate_issuer"
+    },
+    "token_rewards": {
+      "type": "rust",
+      "package": "token_rewards"
+    },
+    "peer_learning": {
+      "type": "rust",
+      "package": "peer_learning"
+    },
+    "icp_scholar_frontend": {
+      "type": "assets",
+      "source": ["dist/"]
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    },
+    "ic": {
+      "providers": ["https://ic0.app"],
+      "type": "persistent"
+    }
+  }
+}

@@ -1,0 +1,99 @@
+type CourseLevel = variant {
+  Beginner;
+  Intermediate;
+  Advanced;
+};
+
+type Lesson = record {
+  id: nat64;
+  title: text;
+  content: text;
+  duration: text;
+  order: nat32;
+};
+
+type Course = record {
+  id: nat64;
+  title: text;
+  description: text;
+  educator: principal;
+  lessons: vec Lesson;
+  level: CourseLevel;
+  image: text;
+  tags: vec text;
+  duration: text;
+  enrolled_students: nat64;
+  created_at: nat64;
+  updated_at: nat64;
+};
+
+type Enrollment = record {
+  student: principal;
+  course_id: nat64;
+  enrolled_at: nat64;
+  completed: bool;
+  completion_date: opt nat64;
+};
+
+type LessonProgress = record {
+  student: principal;
+  course_id: nat64;
+  lesson_id: nat64;
+  completed: bool;
+  completed_at: opt nat64;
+};
+
+type CreateLessonPayload = record {
+  title: text;
+  content: text;
+  duration: text;
+  order: nat32;
+};
+
+type CreateCoursePayload = record {
+  title: text;
+  description: text;
+  lessons: vec CreateLessonPayload;
+  level: CourseLevel;
+  image: text;
+  tags: vec text;
+  duration: text;
+};
+
+type UpdateCoursePayload = record {
+  title: opt text;
+  description: opt text;
+  level: opt CourseLevel;
+  image: opt text;
+  tags: opt vec text;
+  duration: opt text;
+};
+
+type Result = variant {
+  Ok: Course;
+  Err: text;
+};
+
+type Result_1 = variant {
+  Ok: Enrollment;
+  Err: text;
+};
+
+type Result_2 = variant {
+  Ok: LessonProgress;
+  Err: text;
+};
+
+service : {
+  complete_course: (nat64) -> (Result_1);
+  complete_lesson: (nat64, nat64) -> (Result_2);
+  create_course: (CreateCoursePayload) -> (Result);
+  enroll_in_course: (nat64) -> (Result_1);
+  get_all_courses: () -> (vec Course) query;
+  get_course: (nat64) -> (opt Course) query;
+  get_course_enrollments: (nat64) -> (vec Enrollment) query;
+  get_courses_by_educator: (principal) -> (vec Course) query;
+  get_lesson_progress: (principal, nat64) -> (vec LessonProgress) query;
+  get_student_enrollments: (principal) -> (vec Enrollment) query;
+  update_course: (nat64, UpdateCoursePayload) -> (Result);
+}

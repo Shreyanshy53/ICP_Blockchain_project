@@ -1,0 +1,17 @@
+[workspace]
+members = [
+    "src/user_management",
+    "src/course_management", 
+    "src/certificate_issuer",
+    "src/token_rewards",
+    "src/peer_learning"
+]
+
+[workspace.dependencies]
+ic-cdk = "0.13"
+ic-cdk-timers = "0.7"
+ic-stable-structures = "0.6"
+candid = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ic-cdk-macros = "0.9"

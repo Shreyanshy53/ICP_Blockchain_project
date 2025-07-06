@@ -1,0 +1,49 @@
+type TransactionType = variant {
+  CourseCompletion;
+  LessonCompletion;
+  CommunityHelp;
+  QuestionAnswer;
+  StudyGroupParticipation;
+  Bonus;
+};
+
+type Transaction = record {
+  id: nat64;
+  user: principal;
+  transaction_type: TransactionType;
+  amount: nat64;
+  description: text;
+  timestamp: nat64;
+  related_id: opt nat64;
+};
+
+type RewardPayload = record {
+  user: principal;
+  transaction_type: TransactionType;
+  amount: nat64;
+  description: text;
+  related_id: opt nat64;
+};
+
+type LeaderboardEntry = record {
+  user: principal;
+  balance: nat64;
+  rank: nat32;
+};
+
+type Result = variant {
+  Ok: Transaction;
+  Err: text;
+};
+
+service : {
+  get_balance: (principal) -> (nat64) query;
+  get_leaderboard: (nat32) -> (vec LeaderboardEntry) query;
+  get_total_tokens_distributed: () -> (nat64) query;
+  get_transaction_history: (nat32) -> (vec Transaction) query;
+  get_user_transactions: (principal) -> (vec Transaction) query;
+  reward_community_help: (principal, nat64) -> (Result);
+  reward_course_completion: (principal, nat64) -> (Result);
+  reward_lesson_completion: (principal, nat64, nat64) -> (Result);
+  reward_user: (RewardPayload) -> (Result);
+}

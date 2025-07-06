@@ -1,0 +1,101 @@
+type VoteType = variant {
+  Question;
+  Answer;
+};
+
+type Question = record {
+  id: nat64;
+  title: text;
+  content: text;
+  author: principal;
+  tags: vec text;
+  votes: int32;
+  answer_count: nat32;
+  created_at: nat64;
+  updated_at: nat64;
+};
+
+type Answer = record {
+  id: nat64;
+  question_id: nat64;
+  content: text;
+  author: principal;
+  votes: int32;
+  created_at: nat64;
+  updated_at: nat64;
+};
+
+type StudyGroup = record {
+  id: nat64;
+  name: text;
+  description: text;
+  creator: principal;
+  tags: vec text;
+  member_count: nat32;
+  max_members: nat32;
+  is_public: bool;
+  created_at: nat64;
+  updated_at: nat64;
+};
+
+type GroupMembership = record {
+  group_id: nat64;
+  member: principal;
+  joined_at: nat64;
+  is_moderator: bool;
+};
+
+type CreateQuestionPayload = record {
+  title: text;
+  content: text;
+  tags: vec text;
+};
+
+type CreateAnswerPayload = record {
+  question_id: nat64;
+  content: text;
+};
+
+type CreateStudyGroupPayload = record {
+  name: text;
+  description: text;
+  tags: vec text;
+  max_members: nat32;
+  is_public: bool;
+};
+
+type Result = variant {
+  Ok: Question;
+  Err: text;
+};
+
+type Result_1 = variant {
+  Ok: Answer;
+  Err: text;
+};
+
+type Result_2 = variant {
+  Ok: StudyGroup;
+  Err: text;
+};
+
+type Result_3 = variant {
+  Ok: GroupMembership;
+  Err: text;
+};
+
+service : {
+  create_answer: (CreateAnswerPayload) -> (Result_1);
+  create_question: (CreateQuestionPayload) -> (Result);
+  create_study_group: (CreateStudyGroupPayload) -> (Result_2);
+  get_all_questions: () -> (vec Question) query;
+  get_all_study_groups: () -> (vec StudyGroup) query;
+  get_answers_for_question: (nat64) -> (vec Answer) query;
+  get_question: (nat64) -> (opt Question) query;
+  get_questions_by_tag: (text) -> (vec Question) query;
+  get_study_group: (nat64) -> (opt StudyGroup) query;
+  get_user_study_groups: (principal) -> (vec StudyGroup) query;
+  join_study_group: (nat64) -> (Result_3);
+  vote_answer: (nat64, bool) -> (Result_1);
+  vote_question: (nat64, bool) -> (Result);
+}

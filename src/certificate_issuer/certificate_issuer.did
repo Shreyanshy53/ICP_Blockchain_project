@@ -1,0 +1,43 @@
+type CertificateMetadata = record {
+  completion_date: nat64;
+  total_lessons: nat32;
+  course_duration: text;
+  course_level: text;
+  skills_acquired: vec text;
+};
+
+type Certificate = record {
+  id: nat64;
+  student: principal;
+  course_id: nat64;
+  course_title: text;
+  educator: principal;
+  educator_name: text;
+  issue_date: nat64;
+  verification_hash: text;
+  metadata: CertificateMetadata;
+};
+
+type IssueCertificatePayload = record {
+  student: principal;
+  course_id: nat64;
+  course_title: text;
+  educator: principal;
+  educator_name: text;
+  metadata: CertificateMetadata;
+};
+
+type Result = variant {
+  Ok: Certificate;
+  Err: text;
+};
+
+service : {
+  get_all_certificates: () -> (vec Certificate) query;
+  get_certificate: (nat64) -> (opt Certificate) query;
+  get_certificates_by_course: (nat64) -> (vec Certificate) query;
+  get_certificates_by_educator: (principal) -> (vec Certificate) query;
+  get_student_certificates: (principal) -> (vec Certificate) query;
+  issue_certificate: (IssueCertificatePayload) -> (Result);
+  verify_certificate: (text) -> (opt Certificate) query;
+}
